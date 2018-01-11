@@ -1,5 +1,4 @@
-Hbase session on 5th october:
------------------------------
+
 1:Create table niit with two ColumnFamilies in it:
 --------------------------------------------------
 hbase(main):001:0>create 'niit', 'info', 'roles'
