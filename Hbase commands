@@ -1,0 +1,128 @@
+Hbase session on 5th october:
+-----------------------------
+1:Create table niit with two ColumnFamilies in it:
+--------------------------------------------------
+hbase(main):001:0>create 'niit', 'info', 'roles'
+(here 'info' and 'roles' are columnfamilies)
+=> Hbase::Table - niit
+
+2:Checking table 'niit'
+------------------------
+hbase(main):002:0> describe 'niit'
+
+=>Table niit is ENABLED                                                           
+COLUMN FAMILIES DESCRIPTION                                                     
+{NAME => 'info', BLOOMFILTER => 'ROW', VERSIONS => '1', IN_MEMORY => 'false', KE
+EP_DELETED_CELLS => 'FALSE', DATA_BLOCK_ENCODING => 'NONE', TTL => 'FOREVER', CO
+MPRESSION => 'NONE', MIN_VERSIONS => '0', BLOCKCACHE => 'true', BLOCKSIZE => '65
+536', REPLICATION_SCOPE => '0'}                                                 
+{NAME => 'roles', BLOOMFILTER => 'ROW', VERSIONS => '1', IN_MEMORY => 'false', K
+EEP_DELETED_CELLS => 'FALSE', DATA_BLOCK_ENCODING => 'NONE', TTL => 'FOREVER', C
+OMPRESSION => 'NONE', MIN_VERSIONS => '0', BLOCKCACHE => 'true', BLOCKSIZE => '6
+5536', REPLICATION_SCOPE => '0'}                                                
+2 row(s) in 0.1160 seconds
+
+3:Put values into niit table
+---------------------------- 
+hbase(main):003:0> put 'niit', 'cutting', 'info:height', '9 ft'
+(Here 'niit' is the tablename, 'cutting' is the rowkey/primary key, 'info'is the Columnfamily name, 'height' is the attribute within the info columnfamily name, '9 ft' is the value of height.)
+
+4:checkibg the value inserted inside table 'niit':
+--------------------------------------------------
+hbase(main):004:0> scan 'niit'
+ROW                   COLUMN+CELL                                               
+cutting              column=info:height, timestamp=1507192107406, value=9 ft    
+
+5:Similarly putting/inserting values into niit table:
+------------------------------------------------------
+->hbase(main):007:0> put 'niit', 'cutting', 'info:state', 'CA'
+hbase(main):009:0> put 'niit', 'cutting', 'roles:ASF', 'Fouder'
+hbase(main):008:0> scan 'niit'
+ROW                   COLUMN+CELL                                               
+ cutting              column=info:height, timestamp=1507192126649, value=9 ft    
+ cutting              column=info:state, timestamp=1507192164093, value=CA   
+ cutting              column=roles:ASF, timestamp=1507192198821, value=Fouder    
+
+
+6:If we want to change the version :
+------------------------------------
+hbase(main):014:0> get 'niit', 'cutting', {COLUMN => 'info:state', VERSIONS => 2}
+COLUMN                CELL                                                      
+ info:state           timestamp=1507192164093, value=CA                         
+
+hbase(main):015:0> get 'niit', 'cutting', {COLUMN => 'info:height', VERSIONS => 2}
+COLUMN                CELL                                                      
+ info:height          timestamp=1507192392563, value=9 ft                       
+1 row(s) in 0.0220 seconds
+
+hbase(main):016:0> alter 'niit', {NAME => 'info', VERSION => '3'}
+Unknown argument ignored for column family info: 1.8.7
+Updating all regions with the new schema...
+0/1 regions updated.
+1/1 regions updated.
+Done.
+0 row(s) in 2.5050 seconds
+
+7:Insering values to niit table under cutting rowkey inside roles columnfamily:
+-------------------------------------------------------------------------------
+hbase(main):017:0> put 'niit', 'cutting', 'roles:hadoop', 'committer'
+
+hbase(main):018:0> scan 'niit'
+ROW                   COLUMN+CELL                                               
+ cutting              column=info:height, timestamp=1507192392563, value=9 ft   
+ cutting              column=info:state, timestamp=1507192164093, value=CA      
+ cutting              column=roles:ASF, timestamp=1507192198821, value=Fouder   
+ cutting              column=roles:hadoop, timestamp=1507192989689, value=commit
+                      ter                                                       
+
+7:Insering values to niit table under tlipcon rowkey:
+-----------------------------------------------------
+hbase(main):019:0> put 'niit', 'tlipcon', 'roles:hadoop', 'PMC'
+
+hbase(main):020:0> scan 'niit'
+ROW                   COLUMN+CELL                                               
+ cutting              column=info:height, timestamp=1507192392563, value=9 ft   
+ cutting              column=info:state, timestamp=1507192164093, value=CA      
+ cutting              column=roles:ASF, timestamp=1507192198821, value=Fouder   
+ cutting              column=roles:hadoop, timestamp=1507192989689, value=commit
+                      ter                                                       
+ tlipcon              column=roles:hadoop, timestamp=1507193024328, value=PMC   
+
+
+8:Adding one more columnfamily to niit table:
+----------------------------------------------
+alter 'niit', 'personal'
+
+9:Inserting value into newly added personal columnfamily:
+---------------------------------------------------------
+put 'niit', 'tlipcon', 'personal:fname', 'JOHN'
+
+scan 'niit'
+ROW                   COLUMN+CELL                                               
+ cutting              column=info:height, timestamp=1507192392563, value=9 ft   
+ cutting              column=info:state, timestamp=1507192164093, value=CA      
+ cutting              column=roles:ASF, timestamp=1507192198821, value=Fouder   
+ cutting              column=roles:hadoop, timestamp=1507192989689, value=commit
+                      ter                                                       
+ tlipcon              column=personal:fname, timestamp=1507193877503, value=JOHN
+ tlipcon              column=roles:hadoop, timestamp=1507193024328, value=PMC
+
+10:Creating new table 'college' with columnfamilies-'student_profile' and 'fy_results':
+----------------------------------------------------------------------------------------
+hbase > create 'college', 'student_profile', 'fy_result'
+
+hbase>describe 'college'
+
+Importing student_master table in mysql to student_profile table in HBase:
+---------------------------------------------------------------------------
+sqoop import --connect jdbc:mysql://localhost/college --username root
+--password '' --table student_master --columns
+"student_id,name,address" --hbase-table college --column-family
+student_profile --hbase-row-key student_id  -m 1;
+
+Importing fy table in mysql to fy_result table in HBase:
+---------------------------------------------------------------------------
+sqoop import --connect jdbc:mysql://localhost/college --username root
+--password '' --table fy --columns "student_id,result" --hbase-table
+college --column-family fy_result --hbase-row-key student_id  -m 1;
+(but here we only import 'student_id' and 'result' of fy table and not the fy_id in mysql to fy_result of hbase, because importing fy_id to hbase would generate a foreigh key in hbase college table.Here basically we are adding two tables of mysql to a single table in hbase,so we need only one rowkey and no foreign key)
